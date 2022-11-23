@@ -1,0 +1,99 @@
+plugins {
+    id 'com.gradle.plugin-publish' version "${gradlePluginVersion}"
+    id 'signing'
+}
+
+group 'io.github.jmusacchio'
+
+version "${kogitoVersion}"
+
+description = """
+This plugin is a port/translation of kogito-maven-plugin for gradle.
+"""
+ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
+
+sourceCompatibility = 11
+targetCompatibility = 11
+
+repositories {
+    mavenLocal()
+    maven {
+        url 'https://repo1.maven.org/maven2'
+    }
+}
+
+dependencies {
+    implementation platform("org.kie.kogito:kogito-pmml-dependencies:${version}")
+    implementation platform("org.kie.kogito:kogito-kie-bom:${version}")
+    implementation 'org.kie.kogito:kogito-codegen-core'
+    implementation 'org.kie.kogito:kogito-codegen-processes'
+    implementation 'org.kie.kogito:kogito-codegen-rules'
+    implementation 'org.kie.kogito:kogito-codegen-decisions'
+    implementation 'org.kie.kogito:kogito-codegen-predictions'
+    implementation 'org.reflections:reflections'
+}
+
+java {
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom {
+                name = 'Kogito Generator Gradle Plugin'
+                description = project.description
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'jmusacchio'
+                        name = 'Juan Manuel Musacchio'
+                        email = 'juan.musacchio@gmail.com'
+                    }
+                }
+                scm {
+                    url = 'https://github.com/jmusacchio/kogito-generator-gradle-plugin'
+                    connection = 'scm:git:git://github.com/jmusacchio/kogito-generator-gradle-plugin.git'
+                    developerConnection = 'scm:git:ssh://git@github.com:jmusacchio/kogito-generator-gradle-plugin.git'
+                }
+                issueManagement {
+                    system = 'GitHub'
+                    url = 'https://github.com/jmusacchio/kogito-generator-gradle-plugin/issues'
+                }
+            }
+        }
+    }
+}
+
+gradlePlugin {
+    plugins {
+        kogitoGenerator {
+            id = 'io.github.jmusacchio.kogito.generator'
+            implementationClass = 'io.github.jmusacchio.kogito.generator.gradle.plugin.KogitoPlugin'
+            displayName = 'Kogito Generator Gradle Plugin'
+            description = project.description
+        }
+    }
+}
+
+pluginBundle {
+    website = 'https://github.com/jmusacchio/kogito-generator-gradle-plugin'
+    vcsUrl = 'https://github.com/jmusacchio/kogito-generator-gradle-plugin.git'
+    tags = [ 'kogito', 'bpmn', 'drl', 'dmn', 'optaPlanner']
+}
+
+signing {
+    required { isReleaseVersion && gradle.taskGraph.hasTask("publish") }
+    def signingKeyId = findProperty("signingKeyId")
+    def signingKey = findProperty("signingKey")
+    def signingPassword = findProperty("signingPassword")
+    useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+    sign publishing.publications.mavenJava
+}
