@@ -1,0 +1,221 @@
+= Kogito Generator Gradle Plugin
+
+## Kogito
+https://kogito.kie.org[Kogito] is the next generation of business automation platform focused on cloud-native development, deployment and execution.
+
+image::https://github.com/kiegroup/kogito-runtimes/raw/main/docsimg/kogito.png[]
+
+This document describes the gradle plugin for Kogito Generator which is a translation of https://github.com/kiegroup/kogito-runtimes/tree/main/kogito-maven-plugin[kogito-maven-plugin].
+
+This gradle plugin offers a declarative DSL via _extensions_ (these are Gradle project extensions).
+These map almost fully 1:1 with the options you'd pass to the CLI or Maven plugin.
+The plugin maps extensions to tasks, base configuration is specified on `kogito` extension and applied to all tasks, the other extensions
+are mapped to a task of the same name to provide a clean API.
+If you're interested in the extension/task mapping concept from a high-level, you can https://docs.gradle.org/current/userguide/custom_plugins.html#sec:mapping_extension_properties_to_task_properties[check out Gradle's docs].
+
+== Tasks
+
+Tasks are listed under the "kogito generator" tasks heading.
+
+.kogito generator Tasks
+|===
+|task name |description
+
+|*kogitoGenerateModel*
+|Generates code via Kogito Application Generator API for supported kogito specification documents like bpmn, dmn, drl, etc.
+
+|*kogitoProcessClasses*
+|Generates persistence code via Kogito Persistence Generator API for supported kogito persistence types like jdbc, mongodb, kafka, etc.
+
+|*kogitoScaffold*
+|Similar to kogitoGenerateModel task but placing generated java classes on project main java source directory.
+
+|*compileKogito*
+|Compiles kogito generated code.
+|===
+
+[NOTE]
+====
+Kogito generator plugin by default is configured to execute automatically as part of compile task, this behavior can be disabled by `autoBuild` property on `kogito` extension.
+====
+
+== Plugin Setup
+
+[source,group]
+----
+plugins {
+  id "io.github.jmusacchio.kogito.generator" version "1.31.1.Final"
+}
+----
+
+Using https://docs.gradle.org/current/userguide/plugins.html#sec:old_plugin_application[legacy plugin application]:
+
+[source,groovy]
+----
+buildscript {
+  repositories {
+    mavenLocal()
+    maven { url "https://repo1.maven.org/maven2" }
+    // or, via Gradle Plugin Portal:
+    // url "https://plugins.gradle.org/m2/"
+  }
+  dependencies {
+    classpath "io.github.jmusacchio:kogito-generator-gradle-plugin:1.31.1.Final"
+  }
+}
+
+apply plugin: 'io.github.jmusacchio.kogito.generator'
+----
+
+== Configuration
+
+=== kogito
+
+.Options
+|===
+|Key |Data Type |Default |Description
+
+|projectDir
+|File
+|${projectDir}
+|The project directory.
+
+|properties
+|Map<String, String>
+|None
+|Additional system properties.
+
+|outputDirectory
+|File
+|${project.buildDir}/classes
+|The project output directory.
+
+|generatedSources
+|File
+|${project.buildDir}/generated-sources/kogito
+|The directory where kogito generated source files will be placed.
+
+|generatedResources
+|File
+|${project.buildDir}/generated-resources/kogito
+|The directory where kogito generated resources files will be placed.
+
+|persistence
+|Boolean
+|true
+|Whether kogito persistence files should be generated.
+
+|generateRules
+|Boolean
+|true
+|Whether kogito rule files should be generated.
+
+|generateProcesses
+|Boolean
+|true
+|Whether kogito process files should be generated.
+
+|generateDecisions
+|Boolean
+|true
+|Whether kogito decision files should be generated.
+
+|generatePredictions
+|Boolean
+|true
+|Whether kogito prediction files should be generated.
+
+|autoBuild
+|Boolean
+|true
+|Whether kogito code generation should be hooked up to build process automatically.
+|===
+
+=== kogitoGenerateModel
+
+.Options
+|===
+|Key |Data Type |Default |Description
+
+|customizableSourcesPath
+|File
+|${project.buildDir}/generated-sources/kogito
+|Customizable source path directory where kogito generated source files will be placed.
+
+|generatePartial
+|Boolean
+|false
+|Allows to partially reprocess a pre-compiled project for faster code-generation. It only generates code for rules and processes, and does not generate extra meta-classes (etc. Application). Use only when doing recompilation and for development purposes
+
+|onDemand
+|Boolean
+|false
+|Allows for on demand code generation, useful for scaffold task.
+
+|keepSources
+|Boolean
+|false
+|Whether to keep drl source files.
+
+|buildOutputDirectory
+|File
+|${project.buildDir}/classes
+|Used to specify compilation index file directory.
+|===
+
+=== kogitoProcessClasses
+
+.Options
+|===
+|Key |Data Type |Default |Description
+
+|schemaVersion
+|String
+|DRAFT_2019_09
+|JSON Schema Versions.
+|===
+
+== Overwrite kogito templates
+
+On some situations it is valid and useful to tweak generated java source code for instance
+when you need to modify the exposed endpoint urls to match your url schema/spec. The problem with that is
+that each time the generator runs will overwrite manual changes, so in order to mitigate it one way can be
+to overwrite kogito code generator templates.
+
+In order to accomplish that, it can be performed doing the following:
+
+.in build.gradle
+[source,groovy]
+----
+buildscript {
+    repositories {
+        //...
+    }
+    dependencies {
+        classpath files ("src/main/resources")
+    }
+}
+----
+
+And placing the template files inside `class-templates` folder.
+
+So a file example location would be `src/main/resources/class-templates/RestResourceSpringTemplate.java` which is going
+to overwrite default https://github.com/kiegroup/kogito-runtimes/blob/main/kogito-codegen-modules/kogito-codegen-processes/src/main/resources/class-templates/RestResourceSpringTemplate.java[RestResourceSpringTemplate.java]
+
+https://github.com/kiegroup/kogito-runtimes/tree/main/kogito-codegen-modules[Here] are the code generator modules.
+
+Also later if a version upgrade is performed to kogito libraries, those templates also should be updated as well whether it changed.
+
+== Examples
+
+=== kogito
+
+Disable automatic build hook up so tasks like `kogitoGenerateModel` and `kogitoProcessClasses` are not run automatically.
+
+.in build.gradle
+[source,groovy]
+----
+kogito {
+    autoBuild = false
+}
+----
