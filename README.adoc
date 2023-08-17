@@ -44,7 +44,7 @@ Kogito generator plugin by default is configured to execute automatically as par
 [source,group]
 ----
 plugins {
-  id "io.github.jmusacchio.kogito.generator" version "1.41.0.Final"
+  id "io.github.jmusacchio.kogito.generator" version "1.42.0.Final"
 }
 ----
 
@@ -60,7 +60,7 @@ buildscript {
     // url "https://plugins.gradle.org/m2/"
   }
   dependencies {
-    classpath "io.github.jmusacchio:kogito-generator-gradle-plugin:1.41.0.Final"
+    classpath "io.github.jmusacchio:kogito-generator-gradle-plugin:1.42.0.Final"
   }
 }
 
