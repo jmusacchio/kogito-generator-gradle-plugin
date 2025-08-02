@@ -1,13 +1,8 @@
 package io.github.jmusacchio.kogito.generator.gradle.plugin.extensions;
 
 import org.gradle.api.Project;
-import org.kie.kogito.codegen.core.utils.GeneratedFileWriter;
-
-import java.io.File;
 
 public class GenerateModelExtension {
-
-  private File customizableSourcesPath;
 
   private boolean generatePartial;
 
@@ -15,20 +10,7 @@ public class GenerateModelExtension {
 
   private boolean keepSources;
 
-  private String buildOutputDirectory;
-
-  public GenerateModelExtension(Project project) {
-    customizableSourcesPath = new File(project.getBuildDir() + "/" + GeneratedFileWriter.DEFAULT_SOURCES_DIR);
-    buildOutputDirectory = project.getBuildDir() + "/classes";
-  }
-
-  public File getCustomizableSourcesPath() {
-    return customizableSourcesPath;
-  }
-
-  public void setCustomizableSourcesPath(File customizableSourcesPath) {
-    this.customizableSourcesPath = customizableSourcesPath;
-  }
+  public GenerateModelExtension(Project project) {}
 
   public boolean isGeneratePartial() {
     return generatePartial;
@@ -54,11 +36,4 @@ public class GenerateModelExtension {
     this.keepSources = keepSources;
   }
 
-  public String getBuildOutputDirectory() {
-    return buildOutputDirectory;
-  }
-
-  public void setBuildOutputDirectory(String buildOutputDirectory) {
-    this.buildOutputDirectory = buildOutputDirectory;
-  }
 }

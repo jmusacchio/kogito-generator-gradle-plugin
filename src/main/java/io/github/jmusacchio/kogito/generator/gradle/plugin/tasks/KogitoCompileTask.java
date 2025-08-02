@@ -2,45 +2,39 @@ package io.github.jmusacchio.kogito.generator.gradle.plugin.tasks;
 
 import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.KogitoExtension;
 import io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util;
+import org.drools.codegen.common.GeneratedFileWriter;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.file.FileCollectionFactory;
 import org.gradle.api.tasks.CacheableTask;
-import org.gradle.api.tasks.CompileClasspath;
-import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.compile.AbstractCompile;
 import org.gradle.api.tasks.compile.JavaCompile;
 
 import javax.inject.Inject;
 import java.io.File;
 
+import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.getGeneratedFileWriter;
 import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.projectSourceDirectory;
 
 @CacheableTask
 public class KogitoCompileTask extends JavaCompile {
 
-  @org.gradle.api.tasks.Optional
-  @InputFiles
-  @CompileClasspath
-  private File generatedSources;
-
-  @org.gradle.api.tasks.Optional
-  @InputFiles
-  @CompileClasspath
-  private File generatedResources;
+  @Internal
+  private File baseDir;
 
   @Inject
   public KogitoCompileTask(KogitoExtension extension, AbstractCompile compile) {
     super();
-    this.generatedSources = extension.getGeneratedSources();
-    this.generatedResources = extension.getGeneratedResources();
+    this.baseDir = extension.getBaseDir();
+    GeneratedFileWriter generatedFiles = getGeneratedFileWriter(getBaseDir());
     source(
-        getGeneratedSources(), getGeneratedResources(), projectSourceDirectory(this.getProject())
+        generatedFiles.getScaffoldedSourcesDir().toFile(), projectSourceDirectory(this.getProject())
         .getSrcDirs()
         .stream()
         .findFirst()
-        .orElse(getGeneratedSources()));
+        .orElse(getBaseDir()));
     setClasspath(compile.getClasspath());
-    setDestinationDir(compile.getDestinationDir());
+    getDestinationDirectory().set(compile.getDestinationDirectory());
   }
 
   @Override
@@ -48,11 +42,7 @@ public class KogitoCompileTask extends JavaCompile {
     return getServices().get(FileCollectionFactory.class).fixed(Util.classpathFiles(getProject()));
   }
 
-  public File getGeneratedSources() {
-    return generatedSources;
-  }
-
-  public File getGeneratedResources() {
-    return generatedResources;
+  public File getBaseDir() {
+    return baseDir;
   }
 }

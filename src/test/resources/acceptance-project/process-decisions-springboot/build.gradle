@@ -1,0 +1,17 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+apply plugin: 'org.springframework.boot'
+
+dependencies {
+    implementation platform("org.kie.kogito:kogito-spring-boot-bom:${kogitoVersion}")
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.jbpm:jbpm-spring-boot-starter'
+    implementation 'org.drools:drools-decisions-spring-boot-starter'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.rest-assured:rest-assured'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}

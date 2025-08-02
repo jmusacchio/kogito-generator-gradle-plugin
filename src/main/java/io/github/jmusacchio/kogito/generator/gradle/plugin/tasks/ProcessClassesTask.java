@@ -1,5 +1,6 @@
 package io.github.jmusacchio.kogito.generator.gradle.plugin.tasks;
 
+import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.KogitoExtension;
 import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.ProcessClassesExtension;
 import org.drools.codegen.common.GeneratedFile;
 import org.drools.codegen.common.GeneratedFileType;
@@ -17,7 +18,6 @@ import org.kie.kogito.codegen.json.JsonSchemaGenerator;
 import org.kie.kogito.codegen.process.persistence.PersistenceGenerator;
 import org.kie.kogito.codegen.process.persistence.marshaller.ReflectionMarshallerGenerator;
 import org.kie.kogito.codegen.process.persistence.proto.ReflectionProtoGenerator;
-import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.KogitoExtension;
 import org.kie.memorycompiler.CompilationResult;
 import org.kie.memorycompiler.JavaCompiler;
 import org.kie.memorycompiler.JavaCompilerFactory;
@@ -32,9 +32,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.classpathFiles;
 import static java.util.Arrays.asList;
 import static org.kie.kogito.codegen.core.utils.GeneratedFileValidation.validateGeneratedFileTypes;
-import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.classpathFiles;
 
 @CacheableTask
 public class ProcessClassesTask extends AbstractKieTask {
@@ -48,7 +48,7 @@ public class ProcessClassesTask extends AbstractKieTask {
   public ProcessClassesTask(KogitoExtension extension, ProcessClassesExtension processClassesExtension, AbstractCompile compile) {
     super(extension);
     this.schemaVersion = processClassesExtension.getSchemaVersion();
-    setOutputDirectory(compile.getDestinationDir());
+    setOutputDirectory(compile.getDestinationDirectory().get().getAsFile());
   }
 
   @TaskAction
@@ -84,14 +84,14 @@ public class ProcessClassesTask extends AbstractKieTask {
       compileAndWriteClasses(generatedClasses, classLoader, settings);
 
       // Dump resources
-      generatedResources.forEach(this::writeGeneratedFile);
+      this.writeGeneratedFiles(generatedResources);
 
       // Json schema generation
       Stream<Class<?>> processClassStream = getReflections().getTypesAnnotatedWith(ProcessInput.class).stream();
-      generateJsonSchema(processClassStream).forEach(this::writeGeneratedFile);
+      writeGeneratedFiles(generateJsonSchema(processClassStream));
 
       Stream<Class<?>> userTaskClassStream = getReflections().getTypesAnnotatedWith(UserTask.class).stream();
-      generateJsonSchema(userTaskClassStream).forEach(this::writeGeneratedFile);
+      writeGeneratedFiles(generateJsonSchema(userTaskClassStream));
     } catch (Exception var12) {
       throw new RuntimeException("Error during processing model classes", var12);
     }

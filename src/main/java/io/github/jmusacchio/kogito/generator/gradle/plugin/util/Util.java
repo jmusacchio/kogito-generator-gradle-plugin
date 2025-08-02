@@ -1,5 +1,6 @@
 package io.github.jmusacchio.kogito.generator.gradle.plugin.util;
 
+import org.drools.codegen.common.GeneratedFileWriter;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.drools.compiler.kie.builder.impl.ZipKieModule;
 import org.drools.compiler.kproject.models.KieModuleModelImpl;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +30,13 @@ import static org.codehaus.groovy.runtime.InvokerHelper.asList;
 import static org.drools.compiler.kie.builder.impl.KieBuilderImpl.setDefaultsforEmptyKieModule;
 
 public final class Util {
+  private static final GeneratedFileWriter.Builder generatedFileWriterBuilder = GeneratedFileWriter.builder("kogito", "kogito.codegen.resources.directory", "kogito.codegen.sources.directory");
+
+  public static GeneratedFileWriter getGeneratedFileWriter(File baseDir) {
+    return generatedFileWriterBuilder
+            .build(Path.of(baseDir.getAbsolutePath()));
+  }
+
   public static List<URL> getProjectFiles(
       final Project project,
       final List<InternalKieModule> kmoduleDeps

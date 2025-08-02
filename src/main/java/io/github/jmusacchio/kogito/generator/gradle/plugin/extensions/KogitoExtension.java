@@ -1,7 +1,6 @@
 package io.github.jmusacchio.kogito.generator.gradle.plugin.extensions;
 
 import org.gradle.api.Project;
-import org.kie.kogito.codegen.core.utils.GeneratedFileWriter;
 
 import java.io.File;
 import java.io.Serializable;
@@ -17,9 +16,7 @@ public class KogitoExtension implements Serializable {
 
   private File outputDirectory;
 
-  private File generatedSources;
-
-  private File generatedResources;
+  private File baseDir;
 
   private boolean persistence;
 
@@ -37,8 +34,7 @@ public class KogitoExtension implements Serializable {
     this.projectDir = project.getProjectDir();
     this.project = project;
     this.outputDirectory = new File(project.getBuildDir() + "/classes");
-    this.generatedSources = new File(project.getBuildDir() + "/" + GeneratedFileWriter.DEFAULT_SOURCES_DIR);
-    this.generatedResources = new File(project.getBuildDir() + "/" + GeneratedFileWriter.DEFAULT_RESOURCE_PATH);
+    this.baseDir = project.getProjectDir();
     this.persistence = true;
     this.generateRules = true;
     this.generateProcesses = true;
@@ -79,20 +75,12 @@ public class KogitoExtension implements Serializable {
     this.outputDirectory = outputDirectory;
   }
 
-  public File getGeneratedSources() {
-    return generatedSources;
+  public File getBaseDir() {
+    return baseDir;
   }
 
-  public void setGeneratedSources(File generatedSources) {
-    this.generatedSources = generatedSources;
-  }
-
-  public File getGeneratedResources() {
-    return generatedResources;
-  }
-
-  public void setGeneratedResources(File generatedResources) {
-    this.generatedResources = generatedResources;
+  public void setBaseDir(File baseDir) {
+    this.baseDir = baseDir;
   }
 
   public boolean isPersistence() {

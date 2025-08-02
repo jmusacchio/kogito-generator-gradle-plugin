@@ -30,7 +30,7 @@ Tasks are listed under the "kogito generator" tasks heading.
 |*kogitoScaffold*
 |Similar to kogitoGenerateModel task but placing generated java classes on project main java source directory.
 
-|*compileKogito*
+|*kogitoCompile*
 |Compiles kogito generated code.
 |===
 
@@ -44,7 +44,7 @@ Kogito generator plugin by default is configured to execute automatically as par
 [source,group]
 ----
 plugins {
-  id "io.github.jmusacchio.kogito.generator" version "1.44.1.Final"
+  id "io.github.jmusacchio.kogito.generator" version "10.0.0"
 }
 ----
 
@@ -60,7 +60,7 @@ buildscript {
     // url "https://plugins.gradle.org/m2/"
   }
   dependencies {
-    classpath "io.github.jmusacchio:kogito-generator-gradle-plugin:1.44.1.Final"
+    classpath "io.github.jmusacchio:kogito-generator-gradle-plugin:10.0.0"
   }
 }
 
@@ -90,15 +90,10 @@ apply plugin: 'io.github.jmusacchio.kogito.generator'
 |${project.buildDir}/classes
 |The project output directory.
 
-|generatedSources
+|baseDir
 |File
-|${project.buildDir}/generated-sources/kogito
-|The directory where kogito generated source files will be placed.
-
-|generatedResources
-|File
-|${project.buildDir}/generated-resources/kogito
-|The directory where kogito generated resources files will be placed.
+|${projectDir}
+|The project directory.
 
 |persistence
 |Boolean
@@ -137,11 +132,6 @@ apply plugin: 'io.github.jmusacchio.kogito.generator'
 |===
 |Key |Data Type |Default |Description
 
-|customizableSourcesPath
-|File
-|${project.buildDir}/generated-sources/kogito
-|Customizable source path directory where kogito generated source files will be placed.
-
 |generatePartial
 |Boolean
 |false
@@ -156,11 +146,6 @@ apply plugin: 'io.github.jmusacchio.kogito.generator'
 |Boolean
 |false
 |Whether to keep drl source files.
-
-|buildOutputDirectory
-|File
-|${project.buildDir}/classes
-|Used to specify compilation index file directory.
 |===
 
 === kogitoProcessClasses
