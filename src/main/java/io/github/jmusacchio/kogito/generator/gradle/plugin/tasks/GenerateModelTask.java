@@ -1,16 +1,14 @@
 package io.github.jmusacchio.kogito.generator.gradle.plugin.tasks;
 
+import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.GenerateModelExtension;
+import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.KogitoExtension;
 import org.drools.codegen.common.GeneratedFile;
 import org.drools.codegen.common.GeneratedFileType;
 import org.gradle.api.tasks.CacheableTask;
-import org.gradle.api.tasks.CompileClasspath;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.TaskAction;
 import org.kie.kogito.codegen.core.ApplicationGenerator;
 import org.kie.kogito.codegen.core.utils.ApplicationGeneratorDiscovery;
-import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.KogitoExtension;
-import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.GenerateModelExtension;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -27,18 +25,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.getGeneratedFileWriter;
 import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.projectSourceDirectory;
 import static org.drools.codegen.common.GeneratedFileType.COMPILED_CLASS;
 import static org.kie.efesto.common.api.constants.Constants.INDEXFILE_DIRECTORY_PROPERTY;
 
 @CacheableTask
 public class GenerateModelTask extends AbstractKieTask {
-  public static final PathMatcher drlFileMatcher = FileSystems.getDefault().getPathMatcher("glob:**.drl");
-
-  @org.gradle.api.tasks.Optional
-  @InputFiles
-  @CompileClasspath
-  private File customizableSourcesPath;
+  private static final PathMatcher drlFileMatcher = FileSystems.getDefault().getPathMatcher("glob:**.drl");
 
   @org.gradle.api.tasks.Optional
   @Input
@@ -52,30 +46,24 @@ public class GenerateModelTask extends AbstractKieTask {
   @Input
   private Boolean keepSources;
 
-  @org.gradle.api.tasks.Optional
-  @Input
-  private String buildOutputDirectory;
-
   @Inject
   public GenerateModelTask(KogitoExtension extension, GenerateModelExtension modelExtension) {
     super(extension);
-    this.customizableSourcesPath = modelExtension.getCustomizableSourcesPath();
     this.generatePartial = modelExtension.isGeneratePartial();
     this.onDemand = modelExtension.isOnDemand();
     this.keepSources = modelExtension.isKeepSources();
-    this.buildOutputDirectory = modelExtension.getBuildOutputDirectory();
   }
 
   @TaskAction
   public void execute() {
     // TODO to be removed with DROOLS-7090
     boolean indexFileDirectorySet = false;
-    this.getLogger().debug("execute -> " + getBuildOutputDirectory());
-    if (getBuildOutputDirectory() == null) {
+    this.getLogger().debug("execute -> " + getOutputDirectory());
+    if (getOutputDirectory() == null) {
       throw new RuntimeException("${project.buildDir} is null");
     } else {
       if (System.getProperty(INDEXFILE_DIRECTORY_PROPERTY) == null) {
-        System.setProperty(INDEXFILE_DIRECTORY_PROPERTY, getBuildOutputDirectory());
+        System.setProperty(INDEXFILE_DIRECTORY_PROPERTY, getOutputDirectory().toString());
         indexFileDirectorySet = true;
       }
 
@@ -95,10 +83,7 @@ public class GenerateModelTask extends AbstractKieTask {
 
   protected void addCompileSourceRoots() {
     projectSourceDirectory(this.getProject())
-        .srcDirs(
-            getCustomizableSourcesPath().getPath(),
-            getGeneratedSources().getPath()
-        );
+        .srcDirs(getGeneratedFileWriter(getBaseDir()).getScaffoldedSourcesDir());
   }
 
   protected void generateModel() {
@@ -113,9 +98,11 @@ public class GenerateModelTask extends AbstractKieTask {
 
     Map<GeneratedFileType, List<GeneratedFile>> mappedGeneratedFiles = generatedFiles.stream()
         .collect(Collectors.groupingBy(GeneratedFile::type));
-    mappedGeneratedFiles.entrySet().stream()
+    List<GeneratedFile> generatedUncompiledFiles = mappedGeneratedFiles.entrySet().stream()
         .filter(entry -> !entry.getKey().equals(COMPILED_CLASS))
-        .forEach(entry -> writeGeneratedFiles(entry.getValue()));
+        .flatMap(entry -> entry.getValue().stream())
+        .toList();
+    writeGeneratedFiles(generatedUncompiledFiles);
 
     List<GeneratedFile> generatedCompiledFiles = mappedGeneratedFiles.getOrDefault(COMPILED_CLASS,
             Collections.emptyList())
@@ -149,10 +136,6 @@ public class GenerateModelTask extends AbstractKieTask {
     }
   }
 
-  public File getCustomizableSourcesPath() {
-    return customizableSourcesPath;
-  }
-
   public Boolean getGeneratePartial() {
     return generatePartial;
   }
@@ -167,9 +150,5 @@ public class GenerateModelTask extends AbstractKieTask {
 
   public Boolean getKeepSources() {
     return keepSources;
-  }
-
-  public String getBuildOutputDirectory() {
-    return buildOutputDirectory;
   }
 }

@@ -3,17 +3,17 @@ plugins {
     id 'signing'
 }
 
-group 'io.github.jmusacchio'
+group = 'io.github.jmusacchio'
 
-version "${kogitoVersion}"
+version = "${kogitoVersion}"
 
 description = """
 This plugin is a port/translation of kogito-maven-plugin for gradle.
 """
 ext.isReleaseVersion = !version.endsWith('SNAPSHOT')
 
-sourceCompatibility = 11
-targetCompatibility = 11
+java.sourceCompatibility = 17
+java.targetCompatibility = 17
 
 repositories {
     mavenLocal()
@@ -31,6 +31,13 @@ dependencies {
     implementation 'org.kie.kogito:kogito-codegen-decisions'
     implementation 'org.kie.kogito:kogito-codegen-predictions'
     implementation 'org.reflections:reflections'
+
+    testImplementation gradleTestKit()
+    testImplementation "org.junit.jupiter:junit-jupiter"
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
 }
 
 java {
@@ -73,21 +80,19 @@ publishing {
 }
 
 gradlePlugin {
+    website = 'https://github.com/jmusacchio/kogito-generator-gradle-plugin'
+    vcsUrl = 'https://github.com/jmusacchio/kogito-generator-gradle-plugin.git'
     plugins {
         kogitoGenerator {
             id = 'io.github.jmusacchio.kogito.generator'
             implementationClass = 'io.github.jmusacchio.kogito.generator.gradle.plugin.KogitoPlugin'
             displayName = 'Kogito Generator Gradle Plugin'
             description = project.description
+            tags = [ 'kogito', 'bpmn', 'drl', 'dmn', 'optaPlanner']
         }
     }
 }
 
-pluginBundle {
-    website = 'https://github.com/jmusacchio/kogito-generator-gradle-plugin'
-    vcsUrl = 'https://github.com/jmusacchio/kogito-generator-gradle-plugin.git'
-    tags = [ 'kogito', 'bpmn', 'drl', 'dmn', 'optaPlanner']
-}
 
 signing {
     required { isReleaseVersion && gradle.taskGraph.hasTask("publish") }

@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+    id 'io.github.jmusacchio.kogito.generator'
+}
+
+subprojects {
+    group = 'org.kie.kogito.examples'
+    version = '0.0.1-SNAPSHOT'
+
+    apply plugin: 'java'
+    apply plugin: 'io.github.jmusacchio.kogito.generator'
+
+    repositories {
+        mavenCentral()
+    }
+
+    tasks.named('test', Test) {
+        useJUnitPlatform()
+    }
+
+    if (project.hasProperty("autoBuild")) {
+        kogito {
+            autoBuild=Boolean.parseBoolean(project.property("autoBuild"))
+        }
+    }
+}

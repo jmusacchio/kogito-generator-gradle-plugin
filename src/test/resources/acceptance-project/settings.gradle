@@ -1,0 +1,12 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+    }
+    plugins {
+        id 'io.quarkus' version "${quarkusVersion}"
+        id 'org.springframework.boot' version "${springBootVersion}"
+    }
+}
+
+include('process-decisions-quarkus', 'process-decisions-springboot')

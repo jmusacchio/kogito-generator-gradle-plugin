@@ -1,0 +1,24 @@
+plugins {
+    id 'io.quarkus'
+}
+
+apply plugin: 'io.quarkus'
+
+dependencies {
+    implementation platform("io.quarkus:quarkus-bom:${quarkusVersion}")
+    implementation platform("org.kie.kogito:kogito-bom:${kogitoVersion}")
+    implementation 'io.quarkus:quarkus-resteasy'
+    implementation 'io.quarkus:quarkus-resteasy-jackson'
+    implementation 'org.jbpm:jbpm-with-drools-quarkus'
+    implementation 'io.quarkus:quarkus-smallrye-openapi'
+
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.rest-assured:rest-assured'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    // Exclude native tests
+    exclude '**/Native*IT.class'
+}

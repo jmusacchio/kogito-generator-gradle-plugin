@@ -4,8 +4,8 @@ import io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util;
 import org.drools.codegen.common.AppPaths;
 import org.drools.codegen.common.DroolsModelBuildContext;
 import org.drools.codegen.common.GeneratedFile;
+import org.drools.codegen.common.GeneratedFileWriter;
 import org.gradle.api.DefaultTask;
-import org.gradle.api.tasks.CompileClasspath;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
@@ -15,7 +15,6 @@ import org.kie.kogito.codegen.api.context.KogitoBuildContext;
 import org.kie.kogito.codegen.api.context.impl.JavaKogitoBuildContext;
 import org.kie.kogito.codegen.api.context.impl.QuarkusKogitoBuildContext;
 import org.kie.kogito.codegen.api.context.impl.SpringBootKogitoBuildContext;
-import org.kie.kogito.codegen.core.utils.GeneratedFileWriter;
 import org.kie.kogito.codegen.decision.DecisionCodegen;
 import org.kie.kogito.codegen.prediction.PredictionCodegen;
 import org.kie.kogito.codegen.process.ProcessCodegen;
@@ -35,25 +34,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.getGeneratedFileWriter;
+
 public abstract class AbstractKieTask extends DefaultTask {
 
   @org.gradle.api.tasks.Optional
   @Input
   private Map<String, String> properties;
 
-  @InputFiles
-  @CompileClasspath
+  @Internal
   private File outputDirectory;
 
-  @org.gradle.api.tasks.Optional
-  @InputFiles
-  @CompileClasspath
-  private File generatedSources;
-
-  @org.gradle.api.tasks.Optional
-  @InputFiles
-  @CompileClasspath
-  private File generatedResources;
+  @Internal
+  private File baseDir;
 
   @org.gradle.api.tasks.Optional
   @Input
@@ -85,8 +78,7 @@ public abstract class AbstractKieTask extends DefaultTask {
     this.projectDir = extension.getProjectDir();
     this.properties = extension.getProperties();
     this.outputDirectory = extension.getOutputDirectory();
-    this.generatedSources = extension.getGeneratedSources();
-    this.generatedResources = extension.getGeneratedResources();
+    this.baseDir = extension.getBaseDir();
     this.persistence = extension.isPersistence();
     this.generateRules = extension.isGenerateRules();
     this.generateProcesses = extension.isGenerateProcesses();
@@ -110,8 +102,7 @@ public abstract class AbstractKieTask extends DefaultTask {
 
   protected KogitoBuildContext discoverKogitoRuntimeContext(ClassLoader classLoader) {
     AppPaths appPaths = AppPaths.fromProjectDir(
-        getProjectDir().toPath(),
-        getOutputDirectory().toPath()
+        getProjectDir().toPath()
     );
     KogitoBuildContext context = this.contextBuilder()
         .withClassAvailabilityResolver(this::hasClassOnClasspath)
@@ -245,15 +236,15 @@ public abstract class AbstractKieTask extends DefaultTask {
 
   protected void writeGeneratedFiles(Collection<GeneratedFile> generatedFiles) {
     generatedFiles.forEach(this::writeGeneratedFile);
+    GeneratedFileWriter writer = getGeneratedFileWriter(getBaseDir());
+    generatedFiles.forEach(generatedFile -> writeGeneratedFile(generatedFile, writer));
   }
 
   protected void writeGeneratedFile(GeneratedFile generatedFile) {
-    GeneratedFileWriter writer = new GeneratedFileWriter(
-        getOutputDirectory().toPath(),
-        getGeneratedSources().toPath(),
-        getGeneratedResources().toPath(),
-        getGeneratedSources().toPath()
-    );
+    writeGeneratedFile(generatedFile, getGeneratedFileWriter(getBaseDir()));
+  }
+
+  protected void writeGeneratedFile(GeneratedFile generatedFile, GeneratedFileWriter writer) {
     this.getLogger().info("Generating: " + generatedFile.relativePath());
     writer.write(generatedFile);
   }
@@ -283,16 +274,12 @@ public abstract class AbstractKieTask extends DefaultTask {
     this.outputDirectory = outputDirectory;
   }
 
-  public File getGeneratedSources() {
-    return generatedSources;
+  public File getBaseDir() {
+    return baseDir;
   }
 
-  public void setGeneratedSources(File generatedSources) {
-    this.generatedSources = generatedSources;
-  }
-
-  public File getGeneratedResources() {
-    return generatedResources;
+  public void setBaseDir(File baseDir) {
+    this.baseDir = baseDir;
   }
 
   public Boolean getPersistence() {
