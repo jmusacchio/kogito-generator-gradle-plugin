@@ -23,14 +23,16 @@ repositories {
 }
 
 dependencies {
-    implementation platform("org.kie.kogito:kogito-pmml-dependencies:${version}")
     implementation platform("org.kie.kogito:kogito-kie-bom:${version}")
-    implementation 'org.kie.kogito:kogito-codegen-core'
-    implementation 'org.kie.kogito:kogito-codegen-processes'
-    implementation 'org.kie.kogito:kogito-codegen-rules'
-    implementation 'org.kie.kogito:kogito-codegen-decisions'
-    implementation 'org.kie.kogito:kogito-codegen-predictions'
-    implementation 'org.reflections:reflections'
+    implementation platform("org.kie.kogito:kogito-bom:${version}")
+    implementation platform("org.kie.kogito:kogito-dependencies-bom:${version}")
+    implementation 'org.drools:drools-codegen-common'
+    implementation 'org.drools:drools-compiler'
+    implementation 'org.drools:drools-decisiontables'
+    implementation 'org.drools:drools-util'
+    implementation 'org.kie.kogito:kogito-api'
+    implementation 'org.kie.kogito:kogito-codegen-api'
+    implementation 'org.kie.kogito:kogito-codegen-manager'
 
     testImplementation gradleTestKit()
     testImplementation "org.junit.jupiter:junit-jupiter"

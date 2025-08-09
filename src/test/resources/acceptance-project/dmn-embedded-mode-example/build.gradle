@@ -1,0 +1,8 @@
+dependencies {
+    implementation platform("org.drools:drools-bom:${kogitoVersion}")
+    implementation platform("org.kie.kogito:kogito-bom:${kogitoVersion}")
+    implementation 'org.drools:drools-compiler'
+    implementation 'org.drools:drools-model-compiler'
+    implementation "org.kie:kie-dmn-core:${kogitoVersion}"
+    implementation 'org.drools:drools-xml-support'
+}

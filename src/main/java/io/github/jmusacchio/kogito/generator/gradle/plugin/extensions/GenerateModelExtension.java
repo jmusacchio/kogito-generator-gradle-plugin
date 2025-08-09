@@ -1,6 +1,6 @@
 package io.github.jmusacchio.kogito.generator.gradle.plugin.extensions;
 
-import org.gradle.api.Project;
+import static org.kie.kogito.codegen.json.JsonSchemaGenerator.DEFAULT_SCHEMA_VERSION;
 
 public class GenerateModelExtension {
 
@@ -10,7 +10,17 @@ public class GenerateModelExtension {
 
   private boolean keepSources;
 
-  public GenerateModelExtension(Project project) {}
+  private String schemaVersion;
+
+  private String compilerSourceJavaVersion;
+
+  private String compilerTargetJavaVersion;
+
+  public GenerateModelExtension() {
+    schemaVersion = DEFAULT_SCHEMA_VERSION.name();
+    compilerSourceJavaVersion = "17";
+    compilerTargetJavaVersion = "17";
+  }
 
   public boolean isGeneratePartial() {
     return generatePartial;
@@ -36,4 +46,27 @@ public class GenerateModelExtension {
     this.keepSources = keepSources;
   }
 
+  public String getSchemaVersion() {
+    return schemaVersion;
+  }
+
+  public void setSchemaVersion(String schemaVersion) {
+    this.schemaVersion = schemaVersion;
+  }
+
+  public String getCompilerSourceJavaVersion() {
+    return compilerSourceJavaVersion;
+  }
+
+  public void setCompilerSourceJavaVersion(String compilerSourceJavaVersion) {
+    this.compilerSourceJavaVersion = compilerSourceJavaVersion;
+  }
+
+  public String getCompilerTargetJavaVersion() {
+    return compilerTargetJavaVersion;
+  }
+
+  public void setCompilerTargetJavaVersion(String compilerTargetJavaVersion) {
+    this.compilerTargetJavaVersion = compilerTargetJavaVersion;
+  }
 }
