@@ -9,4 +9,4 @@ pluginManagement {
     }
 }
 
-include('process-decisions-quarkus', 'process-decisions-springboot')
+include('dmn-embedded-mode-example', 'process-decisions-quarkus', 'process-decisions-springboot')

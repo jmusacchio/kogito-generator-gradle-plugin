@@ -2,37 +2,35 @@ package io.github.jmusacchio.kogito.generator.gradle.plugin.tasks;
 
 import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.GenerateModelExtension;
 import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.KogitoExtension;
+import io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util;
 import org.drools.codegen.common.GeneratedFile;
-import org.drools.codegen.common.GeneratedFileType;
+import org.gradle.api.GradleException;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.TaskAction;
-import org.kie.kogito.codegen.core.ApplicationGenerator;
-import org.kie.kogito.codegen.core.utils.ApplicationGeneratorDiscovery;
+import org.kie.kogito.KogitoGAV;
+import org.kie.kogito.codegen.api.context.KogitoBuildContext;
+import org.kie.kogito.codegen.manager.CompilerHelper;
+import org.kie.kogito.codegen.manager.GenerateModelHelper;
+import org.kie.kogito.codegen.manager.processes.PersistenceGenerationHelper;
+import org.kie.kogito.codegen.manager.util.CodeGenManagerUtil;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.getGeneratedFileWriter;
+import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.classpathFiles;
 import static io.github.jmusacchio.kogito.generator.gradle.plugin.util.Util.projectSourceDirectory;
-import static org.drools.codegen.common.GeneratedFileType.COMPILED_CLASS;
 import static org.kie.efesto.common.api.constants.Constants.INDEXFILE_DIRECTORY_PROPERTY;
+import static org.kie.kogito.codegen.manager.CompilerHelper.RESOURCES;
+import static org.kie.kogito.codegen.manager.CompilerHelper.SOURCES;
+import static org.kie.kogito.codegen.manager.util.CodeGenManagerUtil.discoverKogitoRuntimeContext;
 
 @CacheableTask
 public class GenerateModelTask extends AbstractKieTask {
-  private static final PathMatcher drlFileMatcher = FileSystems.getDefault().getPathMatcher("glob:**.drl");
 
   @org.gradle.api.tasks.Optional
   @Input
@@ -46,102 +44,119 @@ public class GenerateModelTask extends AbstractKieTask {
   @Input
   private Boolean keepSources;
 
+  @org.gradle.api.tasks.Optional
+  @Input
+  private String schemaVersion;
+
+  @Input
+  private String compilerSourceJavaVersion;
+
+  @Input
+  private String compilerTargetJavaVersion;
+
   @Inject
   public GenerateModelTask(KogitoExtension extension, GenerateModelExtension modelExtension) {
     super(extension);
     this.generatePartial = modelExtension.isGeneratePartial();
     this.onDemand = modelExtension.isOnDemand();
     this.keepSources = modelExtension.isKeepSources();
+    this.schemaVersion = modelExtension.getSchemaVersion();
+    this.compilerSourceJavaVersion = modelExtension.getCompilerSourceJavaVersion();
+    this.compilerTargetJavaVersion = modelExtension.getCompilerTargetJavaVersion();
   }
 
   @TaskAction
   public void execute() {
-    // TODO to be removed with DROOLS-7090
+    getLogger().debug("Compiler Target Java Version:" + compilerTargetJavaVersion);
+    getLogger().debug("Compiler Source Java Version:" + compilerSourceJavaVersion);
+    getLogger().debug("Compiler Source Encoding:" + projectSourceEncoding);
+    getLogger().debug("Targeting directory: " + getOutputDirectory());
+
     boolean indexFileDirectorySet = false;
-    this.getLogger().debug("execute -> " + getOutputDirectory());
     if (getOutputDirectory() == null) {
-      throw new RuntimeException("${project.buildDir} is null");
-    } else {
-      if (System.getProperty(INDEXFILE_DIRECTORY_PROPERTY) == null) {
-        System.setProperty(INDEXFILE_DIRECTORY_PROPERTY, getOutputDirectory().toString());
-        indexFileDirectorySet = true;
-      }
-
-      this.addCompileSourceRoots();
-
-      if (getOnDemand()) {
-        this.getLogger().info("On-Demand Mode is On. Use gradle build :scaffold");
-      } else {
-        this.generateModel();
-      }
-
-      if (indexFileDirectorySet) {
-        System.clearProperty(INDEXFILE_DIRECTORY_PROPERTY);
-      }
+      throw new GradleException("${project.build.directory} is null");
     }
+    if (System.getProperty(INDEXFILE_DIRECTORY_PROPERTY) == null) {
+      System.setProperty(INDEXFILE_DIRECTORY_PROPERTY, getOutputDirectory().toString());
+      indexFileDirectorySet = true;
+    }
+    addCompileSourceRoots();
+    Map<String, Collection<GeneratedFile>> generatedModelFiles;
+    ClassLoader projectClassLoader = projectClassLoader();
+    KogitoBuildContext kogitoBuildContext = getKogitoBuildContext(projectClassLoader);
+    if (isOnDemand()) {
+      getLogger().info("On-Demand Mode is On. Use mvn compile kogito:scaffold");
+      generatedModelFiles = new HashMap<>();
+    } else {
+      generatedModelFiles = generateModel(kogitoBuildContext);
+    }
+    if (indexFileDirectorySet) {
+      System.clearProperty(INDEXFILE_DIRECTORY_PROPERTY);
+    }
+
+    // Compile and write model files
+    compileAndDump(generatedModelFiles, projectClassLoader);
+
+    Map<String, Collection<GeneratedFile>> generatedPersistenceFiles = generatePersistence(kogitoBuildContext, projectClassLoader);
+
+    compileAndDump(generatedPersistenceFiles, projectClassLoader);
+
+    if (!keepSources) {
+      CodeGenManagerUtil.deleteDrlFiles(getOutputDirectory().toPath());
+    }
+  }
+
+  KogitoBuildContext getKogitoBuildContext(ClassLoader projectClassLoader) {
+    return discoverKogitoRuntimeContext(projectClassLoader,
+            getProjectBaseDir().toPath(),
+            new KogitoGAV(getProject().getGroup().toString(),
+                    getProject().getName(),
+                    getProject().getVersion().toString()),
+            new CodeGenManagerUtil.ProjectParameters(discoverFramework(),
+                    Boolean.toString(getGenerateDecisions()),
+                    Boolean.toString(getGeneratePredictions()),
+                    Boolean.toString(getGenerateProcesses()),
+                    Boolean.toString(getGenerateRules()),
+                    getPersistence()),
+            className -> Util.hasClassOnClasspath(getProject(), className));
+  }
+
+  protected Boolean isOnDemand() {
+    return onDemand;
   }
 
   protected void addCompileSourceRoots() {
-    projectSourceDirectory(this.getProject())
-        .srcDirs(getGeneratedFileWriter(getBaseDir()).getScaffoldedSourcesDir());
+    projectSourceDirectory(this.getProject()).srcDirs(getGeneratedFileWriter().getScaffoldedSourcesDir());
   }
 
-  protected void generateModel() {
-    this.setSystemProperties(getProperties());
-    ApplicationGenerator appGen = ApplicationGeneratorDiscovery.discover(this.discoverKogitoRuntimeContext(this.projectClassLoader()));
-    Collection<GeneratedFile> generatedFiles;
-    if (getGeneratePartial()) {
-      generatedFiles = appGen.generateComponents();
-    } else {
-      generatedFiles = appGen.generate();
-    }
-
-    Map<GeneratedFileType, List<GeneratedFile>> mappedGeneratedFiles = generatedFiles.stream()
-        .collect(Collectors.groupingBy(GeneratedFile::type));
-    List<GeneratedFile> generatedUncompiledFiles = mappedGeneratedFiles.entrySet().stream()
-        .filter(entry -> !entry.getKey().equals(COMPILED_CLASS))
-        .flatMap(entry -> entry.getValue().stream())
-        .toList();
-    writeGeneratedFiles(generatedUncompiledFiles);
-
-    List<GeneratedFile> generatedCompiledFiles = mappedGeneratedFiles.getOrDefault(COMPILED_CLASS,
-            Collections.emptyList())
-        .stream().map(originalGeneratedFile -> new GeneratedFile(COMPILED_CLASS, convertPath(originalGeneratedFile.path().toString()), originalGeneratedFile.contents()))
-        .collect(Collectors.toList());
-
-    writeGeneratedFiles(generatedCompiledFiles);
-
-    if (!getKeepSources()) {
-      this.deleteDrlFiles();
-    }
+  protected Map<String, Collection<GeneratedFile>> generateModel(KogitoBuildContext kogitoBuildContext) {
+    setSystemProperties(getProperties());
+    return GenerateModelHelper.generateModelFiles(kogitoBuildContext, generatePartial);
   }
 
-  private String convertPath(String toConvert) {
-    return toConvert.replace('.', File.separatorChar) + ".class";
+  protected Map<String, Collection<GeneratedFile>> generatePersistence(KogitoBuildContext kogitoBuildContext, ClassLoader projectClassloader) {
+    return PersistenceGenerationHelper.generatePersistenceFiles(kogitoBuildContext, projectClassloader, schemaVersion);
   }
 
-  private void deleteDrlFiles() {
-    // Remove drl files
-    try (final Stream<Path> drlFiles = Files.find(getOutputDirectory().toPath(), Integer.MAX_VALUE,
-        (p, f) -> drlFileMatcher.matches(p))) {
-      drlFiles.forEach(p -> {
-        try {
-          Files.delete(p);
-        } catch (IOException e) {
-          throw new UncheckedIOException(e);
-        }
-      });
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to find .drl files");
+  protected void compileAndDump(Map<String, Collection<GeneratedFile>> generatedFiles, ClassLoader classloader) {
+    try {
+      // Compile and write files
+      CompilerHelper.compileAndDumpGeneratedSources(generatedFiles.get(SOURCES),
+              classloader,
+              classpathFiles(getProject()).stream().map(File::getAbsolutePath).collect(Collectors.toList()),
+              getBaseDir(),
+              projectSourceEncoding,
+              compilerSourceJavaVersion,
+              compilerTargetJavaVersion);
+      // Dump resources
+      CompilerHelper.dumpResources(generatedFiles.get(RESOURCES), getBaseDir());
+    } catch (Exception e) {
+      throw new GradleException("Error during processing model classes: " + e.getMessage(), e);
     }
   }
 
   public Boolean getGeneratePartial() {
     return generatePartial;
-  }
-
-  public Boolean getOnDemand() {
-    return onDemand;
   }
 
   public void setOnDemand(Boolean onDemand) {
@@ -150,5 +165,17 @@ public class GenerateModelTask extends AbstractKieTask {
 
   public Boolean getKeepSources() {
     return keepSources;
+  }
+
+  public String getSchemaVersion() {
+    return schemaVersion;
+  }
+
+  public String getCompilerSourceJavaVersion() {
+    return compilerSourceJavaVersion;
+  }
+
+  public String getCompilerTargetJavaVersion() {
+    return compilerTargetJavaVersion;
   }
 }

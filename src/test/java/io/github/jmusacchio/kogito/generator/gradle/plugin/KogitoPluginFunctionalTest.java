@@ -12,11 +12,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static io.github.jmusacchio.kogito.generator.gradle.plugin.KogitoPlugin.GENERATE_MODEL_TASK;
-import static io.github.jmusacchio.kogito.generator.gradle.plugin.KogitoPlugin.KOGITO_COMPILE_TASK;
-import static io.github.jmusacchio.kogito.generator.gradle.plugin.KogitoPlugin.PROCESS_CLASSES_TASK;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.gradle.api.plugins.JavaPlugin.TEST_TASK_NAME;
 import static org.gradle.testkit.runner.TaskOutcome.FAILED;
+import static org.gradle.testkit.runner.TaskOutcome.NO_SOURCE;
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -30,6 +29,7 @@ public class KogitoPluginFunctionalTest {
 
     private static final String QUARKUS_PROJECT = ":process-decisions-quarkus";
     private static final String SPRING_BOOT_PROJECT = ":process-decisions-springboot";
+    private static final String EMBEDDED_PROJECT = ":dmn-embedded-mode-example";
 
     @BeforeEach
     public void createTemporaryAcceptanceProjectFromTemplate() throws IOException {
@@ -46,8 +46,6 @@ public class KogitoPluginFunctionalTest {
     public void springBootDefaultBuild() {
         BuildResult result = gradleRunner.withArguments(SPRING_BOOT_PROJECT + ":build").build();
         assertEquals(SUCCESS, result.task(SPRING_BOOT_PROJECT + ":" + GENERATE_MODEL_TASK).getOutcome());
-        assertEquals(SUCCESS, result.task(SPRING_BOOT_PROJECT + ":" + KOGITO_COMPILE_TASK).getOutcome());
-        assertEquals(SUCCESS, result.task(SPRING_BOOT_PROJECT + ":" + PROCESS_CLASSES_TASK).getOutcome());
         assertEquals(SUCCESS, result.task(SPRING_BOOT_PROJECT + ":" + TEST_TASK_NAME).getOutcome());
     }
 
@@ -55,8 +53,6 @@ public class KogitoPluginFunctionalTest {
     public void springBootNoAutoBuild() {
         BuildResult result = gradleRunner.withArguments("-PautoBuild=false", SPRING_BOOT_PROJECT + ":build").buildAndFail();
         assertNull(result.task(SPRING_BOOT_PROJECT + ":" + GENERATE_MODEL_TASK));
-        assertNull(result.task(SPRING_BOOT_PROJECT + ":" + KOGITO_COMPILE_TASK));
-        assertNull(result.task(SPRING_BOOT_PROJECT + ":" + PROCESS_CLASSES_TASK));
         assertEquals(FAILED, result.task(SPRING_BOOT_PROJECT + ":" + TEST_TASK_NAME).getOutcome());
     }
 
@@ -64,8 +60,6 @@ public class KogitoPluginFunctionalTest {
     public void quarkusDefaultBuild() {
         BuildResult result = gradleRunner.withArguments(QUARKUS_PROJECT + ":build").build();
         assertEquals(SUCCESS, result.task(QUARKUS_PROJECT + ":" + GENERATE_MODEL_TASK).getOutcome());
-        assertEquals(SUCCESS, result.task(QUARKUS_PROJECT + ":" + KOGITO_COMPILE_TASK).getOutcome());
-        assertEquals(SUCCESS, result.task(QUARKUS_PROJECT + ":" + PROCESS_CLASSES_TASK).getOutcome());
         assertEquals(SUCCESS, result.task(QUARKUS_PROJECT + ":" + TEST_TASK_NAME).getOutcome());
     }
 
@@ -73,9 +67,21 @@ public class KogitoPluginFunctionalTest {
     public void quarkusNoAutoBuild() {
         BuildResult result = gradleRunner.withArguments("-PautoBuild=false", QUARKUS_PROJECT + ":build").buildAndFail();
         assertNull(result.task(QUARKUS_PROJECT + ":" + GENERATE_MODEL_TASK));
-        assertNull(result.task(QUARKUS_PROJECT + ":" + KOGITO_COMPILE_TASK));
-        assertNull(result.task(QUARKUS_PROJECT + ":" + PROCESS_CLASSES_TASK));
         assertEquals(FAILED, result.task(QUARKUS_PROJECT + ":" + TEST_TASK_NAME).getOutcome());
+    }
+
+    @Test
+    public void embeddedDefaultBuild() {
+        BuildResult result = gradleRunner.withArguments(EMBEDDED_PROJECT + ":build").build();
+        assertEquals(SUCCESS, result.task(EMBEDDED_PROJECT + ":" + GENERATE_MODEL_TASK).getOutcome());
+        assertEquals(NO_SOURCE, result.task(EMBEDDED_PROJECT + ":" + TEST_TASK_NAME).getOutcome());
+    }
+
+    @Test
+    public void embeddedNoAutoBuild() {
+        BuildResult result = gradleRunner.withArguments("-PautoBuild=false", EMBEDDED_PROJECT + ":build").build();
+        assertNull(result.task(EMBEDDED_PROJECT + ":" + GENERATE_MODEL_TASK));
+        assertEquals(NO_SOURCE, result.task(EMBEDDED_PROJECT + ":" + TEST_TASK_NAME).getOutcome());
     }
 
     private static void copyDirectory(String sourceDirectoryLocation, String destinationDirectoryLocation)

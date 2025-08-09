@@ -3,6 +3,7 @@ package io.github.jmusacchio.kogito.generator.gradle.plugin.tasks;
 import org.gradle.api.tasks.TaskAction;
 import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.GenerateModelExtension;
 import io.github.jmusacchio.kogito.generator.gradle.plugin.extensions.KogitoExtension;
+import org.kie.kogito.codegen.api.context.KogitoBuildContext;
 
 import javax.inject.Inject;
 
@@ -28,6 +29,8 @@ public class ScaffoldTask extends GenerateModelTask {
   @Override
   public void execute() {
     addCompileSourceRoots();
-    generateModel();
+    ClassLoader projectClassLoader = projectClassLoader();
+    KogitoBuildContext kogitoBuildContext = getKogitoBuildContext(projectClassLoader);
+    generateModel(kogitoBuildContext);
   }
 }

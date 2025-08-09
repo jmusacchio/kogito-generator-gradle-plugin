@@ -8,7 +8,7 @@ import java.util.Map;
 
 public class KogitoExtension implements Serializable {
 
-  private File projectDir;
+  private File projectBaseDir;
 
   private Map<String, String> properties;
 
@@ -17,6 +17,8 @@ public class KogitoExtension implements Serializable {
   private File outputDirectory;
 
   private File baseDir;
+
+  private String projectSourceEncoding;
 
   private boolean persistence;
 
@@ -31,10 +33,11 @@ public class KogitoExtension implements Serializable {
   private boolean autoBuild;
 
   public KogitoExtension(Project project) {
-    this.projectDir = project.getProjectDir();
+    this.projectBaseDir = project.getProjectDir();
     this.project = project;
     this.outputDirectory = new File(project.getBuildDir() + "/classes");
     this.baseDir = project.getProjectDir();
+    this.projectSourceEncoding = System.getProperty("file.encoding");
     this.persistence = true;
     this.generateRules = true;
     this.generateProcesses = true;
@@ -43,12 +46,12 @@ public class KogitoExtension implements Serializable {
     this.autoBuild = true;
   }
 
-  public File getProjectDir() {
-    return projectDir;
+  public File getProjectBaseDir() {
+    return projectBaseDir;
   }
 
-  public void setProjectDir(File projectDir) {
-    this.projectDir = projectDir;
+  public void setProjectBaseDir(File projectBaseDir) {
+    this.projectBaseDir = projectBaseDir;
   }
 
   public Map<String, String> getProperties() {
@@ -81,6 +84,14 @@ public class KogitoExtension implements Serializable {
 
   public void setBaseDir(File baseDir) {
     this.baseDir = baseDir;
+  }
+
+  public String getProjectSourceEncoding() {
+    return projectSourceEncoding;
+  }
+
+  public void setProjectSourceEncoding(String projectSourceEncoding) {
+    this.projectSourceEncoding = projectSourceEncoding;
   }
 
   public boolean isPersistence() {

@@ -1,22 +1,24 @@
 package io.github.jmusacchio.kogito.generator.gradle.plugin.util;
 
-import org.drools.codegen.common.GeneratedFileWriter;
 import org.drools.compiler.kie.builder.impl.InternalKieModule;
 import org.drools.compiler.kie.builder.impl.ZipKieModule;
 import org.drools.compiler.kproject.models.KieModuleModelImpl;
+import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.kie.api.builder.ReleaseId;
 import org.kie.api.builder.model.KieModuleModel;
+import org.kie.kogito.codegen.manager.util.CodeGenManagerUtil;
 import org.kie.util.maven.support.ReleaseIdImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -30,12 +32,8 @@ import static org.codehaus.groovy.runtime.InvokerHelper.asList;
 import static org.drools.compiler.kie.builder.impl.KieBuilderImpl.setDefaultsforEmptyKieModule;
 
 public final class Util {
-  private static final GeneratedFileWriter.Builder generatedFileWriterBuilder = GeneratedFileWriter.builder("kogito", "kogito.codegen.resources.directory", "kogito.codegen.sources.directory");
 
-  public static GeneratedFileWriter getGeneratedFileWriter(File baseDir) {
-    return generatedFileWriterBuilder
-            .build(Path.of(baseDir.getAbsolutePath()));
-  }
+  private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
 
   public static List<URL> getProjectFiles(
       final Project project,
@@ -63,9 +61,11 @@ public final class Util {
     try {
       final List<URL> urls = getProjectFiles(project, kmoduleDeps);
       urls.add(outputDirectory.toURI().toURL());
-      return URLClassLoader.newInstance(urls.toArray(new URL[0]), parentClassLoader);
+      final URL[] urlArray = urls.toArray(new URL[urls.size()]);
+      LOGGER.debug("Creating gradle project class loading with: {}", Arrays.asList(urlArray));
+      return URLClassLoader.newInstance(urlArray, parentClassLoader);
     } catch (IOException var5) {
-      throw new RuntimeException("Error setting up Kie ClassLoader", var5);
+      throw new GradleException("Error setting up Kie ClassLoader", var5);
     }
   }
 
@@ -109,7 +109,7 @@ public final class Util {
       try {
         return file.toURI().toURL();
       } catch (MalformedURLException e) {
-        throw new RuntimeException(e);
+        throw new GradleException(e.getMessage(), e);
       }
     });
   }
@@ -139,6 +139,15 @@ public final class Util {
       return Arrays.stream(buildDir.listFiles()).flatMap(d -> mainBuilds(d, fn).stream()).collect(Collectors.toList());
     } else {
       return Collections.emptyList();
+    }
+  }
+
+  public static boolean hasClassOnClasspath(final Project project, String className) {
+    try {
+      URL[] urls = classpathUrls(project).toArray(URL[]::new);
+      return CodeGenManagerUtil.isClassNameInUrlClassLoader(urls, className);
+    } catch (Exception e) {
+      return false;
     }
   }
 

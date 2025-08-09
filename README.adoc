@@ -22,16 +22,13 @@ Tasks are listed under the "kogito generator" tasks heading.
 |task name |description
 
 |*kogitoGenerateModel*
-|Generates code via Kogito Application Generator API for supported kogito specification documents like bpmn, dmn, drl, etc.
-
-|*kogitoProcessClasses*
-|Generates persistence code via Kogito Persistence Generator API for supported kogito persistence types like jdbc, mongodb, kafka, etc.
+a|
+ * Generates code via Kogito Application Generator API for supported kogito specification documents like bpmn, dmn, drl, etc.
+ * Generates persistence code via Kogito Persistence Generator API for supported kogito persistence types like jdbc, mongodb, kafka, etc.
+ * Compiles kogito generated code.
 
 |*kogitoScaffold*
 |Similar to kogitoGenerateModel task but placing generated java classes on project main java source directory.
-
-|*kogitoCompile*
-|Compiles kogito generated code.
 |===
 
 [NOTE]
@@ -44,7 +41,7 @@ Kogito generator plugin by default is configured to execute automatically as par
 [source,group]
 ----
 plugins {
-  id "io.github.jmusacchio.kogito.generator" version "10.0.0"
+  id "io.github.jmusacchio.kogito.generator" version "10.1.0"
 }
 ----
 
@@ -60,7 +57,7 @@ buildscript {
     // url "https://plugins.gradle.org/m2/"
   }
   dependencies {
-    classpath "io.github.jmusacchio:kogito-generator-gradle-plugin:10.0.0"
+    classpath "io.github.jmusacchio:kogito-generator-gradle-plugin:10.1.0"
   }
 }
 
@@ -75,7 +72,7 @@ apply plugin: 'io.github.jmusacchio.kogito.generator'
 |===
 |Key |Data Type |Default |Description
 
-|projectDir
+|projectBaseDir
 |File
 |${projectDir}
 |The project directory.
@@ -120,6 +117,11 @@ apply plugin: 'io.github.jmusacchio.kogito.generator'
 |true
 |Whether kogito prediction files should be generated.
 
+|projectSourceEncoding
+|String
+|System.getProperty("file.encoding")
+|Project source encoding.
+
 |autoBuild
 |Boolean
 |true
@@ -146,18 +148,21 @@ apply plugin: 'io.github.jmusacchio.kogito.generator'
 |Boolean
 |false
 |Whether to keep drl source files.
-|===
-
-=== kogitoProcessClasses
-
-.Options
-|===
-|Key |Data Type |Default |Description
 
 |schemaVersion
 |String
 |DRAFT_2019_09
 |JSON Schema Versions.
+
+|compilerSourceJavaVersion
+|String
+|17
+|Java Compiler Source Version.
+
+|compilerTargetJavaVersion
+|String
+|17
+|Java Compiler Target Version.
 |===
 
 == Overwrite kogito templates
@@ -195,7 +200,7 @@ Also later if a version upgrade is performed to kogito libraries, those template
 
 === kogito
 
-Disable automatic build hook up so tasks like `kogitoGenerateModel` and `kogitoProcessClasses` are not run automatically.
+Disable automatic build hook up so the task `kogitoGenerateModel` is not run automatically.
 
 .in build.gradle
 [source,groovy]
